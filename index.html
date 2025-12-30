@@ -3,473 +3,600 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BAHÍA CERO | Ultimate Trambahía</title>
-    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;600;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    <title>BAHÍA CERO | THE IMMERSIVE TRAM</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@500;700;800&family=Inter:wght@400;900&display=swap" rel="stylesheet">
     
     <style>
-        /* --- 1. CORE VARIABLES (TRAMBAHÍA + HORROR) --- */
+        /* --- 0. CORE & RESETS --- */
         :root {
-            /* Estado Normal */
-            --c-white: #f1f5f9;
-            --c-wall: #e2e8f0;
-            --c-accent: #00cbb3; /* Turquesa Cádiz */
-            --c-dark: #1e293b;
-            --c-led: #f59e0b;
-            --c-glass: rgba(100, 150, 170, 0.15);
-            
-            /* Estado Pesadilla */
-            --h-red: #ff0033;
-            --h-dark: #050000;
+            --tram-turq: #00f0d4;
+            --led-green: #00ff9d;
+            --led-red: #ff3838;
+            --seat-color: #334155;
+            --seat-fabric: #475569;
         }
-
-        body {
-            margin: 0; background: #000; height: 100vh; overflow: hidden;
-            font-family: 'Inter', sans-serif; user-select: none;
-        }
-
-        /* --- 2. EL MUNDO EXTERIOR (CLIMA) --- */
-        #world-layer {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;
-            background: url('https://images.unsplash.com/photo-1518558997970-4dadc13cbf24?q=80&w=2574') center/cover;
-            filter: blur(4px) brightness(0.3);
-            transition: filter 2s;
-        }
+        body { margin: 0; background: #000; height: 100vh; overflow: hidden; font-family: 'Inter', sans-serif; user-select: none; color: #fff; }
         
-        /* Lluvia en el cristal */
-        .rain-overlay {
-            position: absolute; width: 100%; height: 100%; z-index: 1; pointer-events: none;
-            background-image: url('https://upload.wikimedia.org/wikipedia/commons/6/66/Rain_drops_on_window_02.jpg'); /* Textura de gotas simulada con opacidad */
-            background-size: cover; opacity: 0.3; mix-blend-mode: overlay;
+        /* --- 1. FONDO & EFECTOS --- */
+        #noise-overlay {
+            position: fixed; top:0; left:0; width:100%; height:100%; pointer-events: none; z-index: 900;
+            background: url('https://www.transparenttextures.com/patterns/stardust.png');
+            opacity: 0.15; mix-blend-mode: overlay;
+        }
+        #vignette {
+            position: fixed; top:0; left:0; width:100%; height:100%; pointer-events: none; z-index: 800;
+            background: radial-gradient(circle, transparent 40%, #000 120%);
         }
 
-        /* Relámpagos */
-        #lightning-flash {
+        #world-stage { position: absolute; top:0; left:0; width:100%; height:100%; z-index:0; overflow: hidden; }
+        #scenery-layer {
+            position: absolute; top:-10%; left:-10%; width:120%; height:120%;
+            background: url('https://images.unsplash.com/photo-1494587416117-f10426b770cb?q=80&w=2670') center/cover;
+            filter: brightness(0.2) blur(2px); transition: filter 2s;
+        }
+        .moving #scenery-layer {
+            animation: speedShake 0.2s infinite, passingCity 0.5s linear infinite; 
+            filter: blur(10px) brightness(0.4);
+        }
+        @keyframes speedShake { 0% { transform: translate(0,0); } 25% { transform: translate(2px, 2px); } 75% { transform: translate(-2px, -2px); } }
+        
+        #tunnel-lights {
             position: absolute; top:0; left:0; width:100%; height:100%; z-index: 2;
-            background: #fff; opacity: 0; pointer-events: none;
+            background: linear-gradient(90deg, transparent 0%, rgba(255, 200, 100, 0) 50%, transparent 100%);
+            mix-blend-mode: overlay; pointer-events: none;
         }
-        .flash-anim { animation: flash 0.2s; }
-        @keyframes flash { 0% { opacity: 0; } 10% { opacity: 0.8; } 100% { opacity: 0; } }
-
-        /* Efecto Velocidad */
-        .moving #world-layer {
-            filter: blur(20px) brightness(0.5);
-            animation: shake 0.1s infinite;
+        .moving #tunnel-lights { animation: tunnelFlash 0.8s infinite; }
+        @keyframes tunnelFlash { 
+            0% { background: linear-gradient(90deg, transparent 100%, transparent 100%); opacity: 0; }
+            5% { background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 200, 0.4) 10%, transparent 40%); opacity: 1; }
+            100% { background: linear-gradient(90deg, transparent 80%, rgba(255, 255, 200, 0.4) 100%, transparent 100%); opacity: 0; }
         }
-        @keyframes shake { 0% { transform: translateY(0); } 100% { transform: translateY(2px); } }
 
-
-        /* --- 3. VAGÓN (INTERIOR 3D) --- */
-        #tram-cabin {
-            position: absolute; top:0; left:0; width: 100%; height: 100%;
-            z-index: 10; display: flex; flex-direction: column;
-            /* Luces interiores parpadeantes */
-            transition: filter 0.1s;
+        /* --- TRAM CONTAINER --- */
+        #tram-container {
+            position: absolute; width:100%; height:100%; z-index: 10;
+            display: flex; flex-direction: column;
+            animation: idleRattle 4s infinite ease-in-out;
         }
-        .lights-flicker { filter: brightness(0.2) contrast(1.2); }
+        .moving #tram-container { animation: violentShake 0.1s infinite; }
+        @keyframes idleRattle { 0% { transform: translateY(0); } 50% { transform: translateY(1px); } 100% { transform: translateY(0); } }
+        @keyframes violentShake { 0% { transform: translate(1px, 1px); } 50% { transform: translate(-1px, -2px); } 100% { transform: translate(0px, 1px); } }
 
-        /* TECHO Y PIS */
+        /* TECHO */
         .ceiling {
-            height: 15%; background: #f8fafc; border-bottom: 5px solid #334155;
-            display: flex; align-items: center; justify-content: center; position: relative;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 20;
+            height: 12%; background: linear-gradient(to bottom, #2b2b2b, #1a1a1a);
+            border-bottom: 5px solid #000; display: flex; align-items: center; justify-content: space-between;
+            padding: 0 5%; position: relative; z-index: 50; box-shadow: 0 10px 50px rgba(0,0,0,0.8);
         }
-        
-        /* PIS LED ULTRA REALISTA */
-        .pis-container {
-            width: 50%; height: 50%; background: #000; border: 4px solid #222;
-            box-shadow: inset 0 0 20px #000; overflow: hidden; display: flex; align-items: center;
+        .pis-screen {
+            background: #000; border: 2px solid #333; width: 40%; height: 50%;
+            display: flex; align-items: center; justify-content: center; overflow: hidden;
+            box-shadow: inset 0 0 10px #000; position: relative;
         }
-        .pis-text {
-            font-family: 'Share Tech Mono', monospace; color: var(--c-led); font-size: 1.5rem;
-            white-space: nowrap; text-shadow: 0 0 5px var(--c-led);
-        }
-
-        /* ZONA MEDIA (PAREDES Y PUERTAS) */
-        .mid-deck { flex-grow: 1; display: flex; position: relative; }
-
-        /* Paneles Laterales */
-        .wall {
-            width: 25%; height: 100%; background: linear-gradient(to bottom, #fff, #cbd5e1);
-            border-bottom: 20px solid #334155; position: relative;
-            display: flex; flex-direction: column; justify-content: flex-end;
-        }
-        
-        /* Asientos de lado */
-        .side-seat {
-            width: 90%; height: 50%; margin: 0 auto;
-            background: #475569; border-radius: 10px 10px 0 0;
-            position: relative; box-shadow: 0 -5px 20px rgba(0,0,0,0.3);
-        }
-        .headrest {
-            position: absolute; top: -30px; left: 10%; width: 80%; height: 40px;
-            background: var(--c-accent); border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-
-        /* SOMBRAS PASAJEROS */
-        .shadow-passenger {
-            position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
-            width: 80%; height: 90%;
-            background: radial-gradient(ellipse at center, rgba(10,10,20,0.9), transparent 70%);
-            filter: blur(15px); opacity: 0; mix-blend-mode: multiply;
-            transition: opacity 1s;
-        }
-        .shadow-passenger.active { opacity: 0.8; animation: breathe 4s infinite alternate; }
-        @keyframes breathe { to { transform: translateX(-50%) scale(1.05); } }
-
-        /* PUERTAS CENTRALES */
-        .door-frame {
-            width: 50%; height: 100%; position: relative; overflow: hidden;
-            border-top: 30px solid #334155; /* Caja mecanismo */
-        }
-        .door-leaf {
-            width: 50%; height: 100%; position: absolute; top: 0;
-            background: linear-gradient(90deg, #f1f5f9, #e2e8f0);
-            border-bottom: 15px solid #facc15; /* Goma amarilla */
-            display: flex; align-items: center; justify-content: center;
-            transition: transform 1.2s cubic-bezier(0.6, 0, 0.2, 1);
-            box-shadow: inset 0 0 30px rgba(0,0,0,0.1);
-        }
-        .leaf-left { left: 0; border-right: 5px solid #999; z-index: 2; transform: translateX(0); }
-        .leaf-right { right: 0; border-left: 5px solid #999; z-index: 1; transform: translateX(0); }
-        
-        /* Estado Abierto */
-        .doors-open .leaf-left { transform: translateX(-95%); }
-        .doors-open .leaf-right { transform: translateX(95%); }
-
-        /* Ventanas Puerta (Con gotas de lluvia) */
-        .door-glass {
-            width: 65%; height: 70%; background: var(--c-glass);
-            border: 10px solid #334155; border-radius: 12px;
-            backdrop-filter: blur(6px); position: relative; overflow: hidden;
-        }
-        .glass-rain {
-            position: absolute; width: 100%; height: 100%;
-            background: url('https://www.transparenttextures.com/patterns/stardust.png'); /* Simulación ruido */
-            opacity: 0.5;
-        }
-
-        /* BOTÓN (INTEGRADO) */
-        .btn-housing {
-            position: absolute; top: 50%; left: 15px; transform: translateY(-50%);
-            z-index: 50;
-        }
-        #door-btn {
-            width: 70px; height: 70px; background: #1e293b; border-radius: 50%;
-            border: 3px solid #475569; cursor: pointer; display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.4); transition: transform 0.1s;
-        }
-        #door-btn:active { transform: scale(0.95); }
-        #btn-ring {
-            width: 50px; height: 50px; border-radius: 50%; border: 3px solid #333;
-            background: #222; transition: all 0.3s; position: relative;
-        }
-        #btn-ring::after { content: '< >'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #666; font-weight: bold;}
-        
-        /* Estados botón */
-        .ready #btn-ring { background: #064e3b; border-color: #10b981; box-shadow: 0 0 20px #10b981; animation: pulse 1s infinite; }
-        .ready #btn-ring::after { color: #fff; }
-        @keyframes pulse { 50% { box-shadow: 0 0 40px #10b981; } }
-
-
-        /* --- 4. INTERFONO DE EMERGENCIA (NUEVO) --- */
-        #intercom {
-            position: absolute; top: 30%; right: 10px; width: 60px; height: 100px;
-            background: #cbd5e1; border: 2px solid #94a3b8; border-radius: 5px;
-            display: flex; flex-direction: column; align-items: center; justify-content: space-around;
-            padding: 5px; cursor: pointer; z-index: 50;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-        }
-        .intercom-grill { width: 40px; height: 40px; background: radial-gradient(circle, #333 2px, transparent 2px); background-size: 5px 5px; border: 1px solid #999; border-radius: 50%; }
-        .intercom-btn { width: 30px; height: 30px; background: #ef4444; border-radius: 50%; border: 2px solid #991b1b; }
-        .intercom-active .intercom-btn { animation: blinkRed 0.5s infinite; }
-        @keyframes blinkRed { 50% { background: #fee2e2; box-shadow: 0 0 10px red; } }
-
-
-        /* --- 5. SUELO --- */
-        .floor {
-            height: 20%; background: var(--floor-dark);
-            background-image: radial-gradient(#333 2px, transparent 2px);
-            background-size: 15px 15px;
-            box-shadow: inset 0 20px 60px rgba(0,0,0,0.6);
-            display: flex; justify-content: center;
-        }
-
-
-        /* --- 6. CONTENIDO HOLOGRÁFICO --- */
-        #holo-projector {
-            position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%);
-            width: 80%; height: 10px; background: transparent;
-            display: flex; justify-content: center; z-index: 5;
-        }
-        
-        #holo-content {
-            position: absolute; bottom: 20px; width: 600px; height: 400px;
-            background: linear-gradient(to top, rgba(0, 203, 179, 0.1), transparent);
-            border: 1px solid var(--c-accent); border-radius: 10px;
-            backdrop-filter: blur(10px);
-            display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
-            padding: 30px; color: #fff;
-            transform-origin: bottom; transform: scaleY(0); opacity: 0;
-            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.5s;
-            box-shadow: 0 0 50px rgba(0, 203, 179, 0.2);
-        }
-        .holo-visible { transform: scaleY(1) !important; opacity: 1 !important; }
-        
-        /* Scanlines del holograma */
-        #holo-content::before {
-            content:''; position: absolute; top:0; left:0; width:100%; height:100%;
-            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 203, 179, 0.1) 3px);
+        .pis-screen::after { /* Scanlines */
+            content: ''; position: absolute; top:0; left:0; width:100%; height:100%;
+            background: repeating-linear-gradient(0deg, transparent 0px, transparent 2px, rgba(0,0,0,0.5) 3px);
             pointer-events: none;
         }
+        .led-text {
+            font-family: 'Share Tech Mono'; color: #ffaa00; font-size: 1.5rem;
+            text-shadow: 0 0 8px #ffaa00; white-space: nowrap;
+        }
 
+        /* CUERPO */
+        .body-section { flex: 1; display: flex; position: relative; }
 
-        /* --- 7. TABLET UI --- */
-        #tablet-ui {
+        /* --- PUERTAS --- */
+        .doors-area {
+            width: 55%; height: 100%; position: relative;
+            background: repeating-linear-gradient(90deg, #333 0, #333 1px, transparent 1px, transparent 4px), linear-gradient(to right, #2a2a2a, #444);
+            border-right: 15px solid #111;
+        }
+        .door-frame {
+            position: absolute; bottom: 0; width: 100%; height: 90%;
+            border-top: 20px solid #111; overflow: hidden;
+        }
+        .door-panel {
+            position: absolute; top:0; width: 50%; height: 100%;
+            background: linear-gradient(90deg, #b0bec5 0%, #78909c 20%, #eceff1 45%, #b0bec5 80%);
+            border: 1px solid #546e7a; box-shadow: inset 2px 0 10px rgba(0,0,0,0.5);
+            transition: transform 2.5s cubic-bezier(0.2, 0, 0.2, 1); z-index: 5;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .door-left { left: 0; border-right: 4px solid #333; }
+        .door-right { right: 0; border-left: 4px solid #333; }
+        .doors-open .door-left { transform: translateX(-96%); }
+        .doors-open .door-right { transform: translateX(96%); }
+        .door-window {
+            width: 70%; height: 65%; background: rgba(10, 20, 30, 0.6);
+            border: 12px solid #222; position: relative; overflow: hidden;
+        }
+        .rain-glass {
+            position: absolute; width:100%; height:100%; opacity: 0.6;
+            background: url('https://www.transparenttextures.com/patterns/rain.png'); mix-blend-mode: overlay;
+        }
+
+        /* BOTÓN DE PUERTA - AJUSTADO */
+        .btn-mount {
+            position: absolute; top: 60%; 
+            /* En la puerta derecha, pero cerca del borde izquierdo (centro) */
+            left: -40px; 
+            transform: translateY(-50%); z-index: 20;
+        }
+        #door-button {
+            width: 80px; height: 80px; border-radius: 50%; background: #222;
+            border: 4px solid #444; box-shadow: 0 10px 20px rgba(0,0,0,0.8);
+            display: flex; align-items: center; justify-content: center; cursor: pointer;
+            transition: transform 0.1s; position: relative;
+        }
+        #door-button:active { transform: translateY(-50%) scale(0.95); }
+        .ring-light {
+            width: 60px; height: 60px; border-radius: 50%; border: 4px solid #333;
+            box-shadow: inset 0 0 20px #000; transition: 0.3s;
+        }
+        .status-ready .ring-light { border-color: var(--led-green); box-shadow: 0 0 30px var(--led-green); animation: pulseGreen 1.5s infinite; }
+        .status-locked .ring-light { border-color: var(--led-red); opacity: 0.5; }
+        @keyframes pulseGreen { 0% { opacity: 0.5; } 50% { opacity: 1; box-shadow: 0 0 50px var(--led-green); } 100% { opacity: 0.5; } }
+
+        /* --- ZONA PASAJEROS --- */
+        .passenger-area {
+            width: 45%; height: 100%; position: relative;
+            background: linear-gradient(to right, #222, #333);
+            display: flex; flex-direction: column; justify-content: flex-end;
+            overflow: hidden; /* Importante para que los pasajeros no salgan del container al caminar */
+        }
+        .side-window-frame {
+            position: absolute; top: 10%; left: 10%; width: 80%; height: 50%;
+            background: #000; border: 8px solid #111; overflow: hidden;
+            box-shadow: inset 0 0 50px #000; border-radius: 4px; z-index: 1;
+        }
+        .window-reflection {
+            position: absolute; width:100%; height:100%;
+            background: linear-gradient(110deg, transparent 40%, rgba(255,255,255,0.05) 45%, transparent 50%);
+            z-index: 10;
+        }
+        .moving .window-reflection { animation: reflectionPass 2s infinite linear; }
+        @keyframes reflectionPass { from { background-position: -200px 0; } to { background-position: 200px 0; } }
+
+        /* --- ASIENTOS REALISTAS --- */
+        .seats-container {
+            width: 100%; height: 35%; 
+            position: relative; z-index: 5;
+            display: flex; justify-content: space-evenly; align-items: flex-end;
+            padding-bottom: 20px;
+            perspective: 600px;
+        }
+        .seat {
+            width: 90px; height: 140px;
+            position: relative; transform-style: preserve-3d;
+        }
+        /* Respaldo */
+        .seat-back {
+            position: absolute; bottom: 50px; left: 0; width: 100%; height: 100%;
+            background: var(--seat-color);
+            border-radius: 15px 15px 5px 5px;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.6);
+            overflow: hidden;
+        }
+        /* Textura Tela */
+        .seat-fabric {
+            width: 100%; height: 100%;
+            background: repeating-radial-gradient(circle, var(--seat-fabric) 0, var(--seat-fabric) 1px, transparent 2px, transparent 4px);
+            background-size: 8px 8px; opacity: 0.5;
+        }
+        /* Cabecero */
+        .seat-headrest {
+            position: absolute; top: 0; left: 10%; width: 80%; height: 30px;
+            background: #1e293b; border-radius: 5px 5px 15px 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+        }
+        /* Asiento Base */
+        .seat-cushion {
+            position: absolute; bottom: 0; left: -5%; width: 110%; height: 60px;
+            background: var(--seat-color);
+            border-radius: 10px;
+            background-image: linear-gradient(to bottom, rgba(255,255,255,0.05), rgba(0,0,0,0.2));
+            transform: rotateX(20deg); transform-origin: bottom;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.8);
+        }
+
+        /* --- PASAJEROS (SOMBRAS) --- */
+        .npc-walker {
+            position: absolute; 
+            width: 70px; height: 180px;
+            background: #000;
+            border-radius: 35px 35px 0 0;
+            z-index: 4; /* Entre ventana y asientos */
+            filter: blur(2px);
+            opacity: 0;
+            transition: transform 3s ease-in-out, opacity 1s, height 1s;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+            pointer-events: none;
+        }
+        /* Partes del cuerpo simples para la silueta */
+        .npc-walker::before { /* Cabeza */
+            content: ''; position: absolute; top: -20px; left: 15px; width: 40px; height: 40px;
+            background: #000; border-radius: 50%;
+        }
+        .npc-seated {
+            height: 110px !important;
+            transform: translateY(20px) scale(0.95);
+        }
+
+        /* Palo Validador */
+.pole-group {
+    position: absolute; 
+    left: 1%; /* Antes estaba en -20px, ahora se desplaza a la derecha */
+    top: 0; 
+    height: 100%; 
+    width: 60px;
+    display: flex; 
+    justify-content: center; 
+    z-index: 50;
+    pointer-events: none;
+}
+        .pole {
+            width: 15px; height: 100%; background: linear-gradient(90deg, #666, #ddd, #666);
+            box-shadow: 5px 0 15px rgba(0,0,0,0.5);
+        }
+        #validator {
+            position: absolute; top: 45%; width: 60px; height: 100px;
+            background: #f59e0b; border: 4px solid #78350f; border-radius: 8px;
+            cursor: pointer; box-shadow: 0 5px 20px rgba(0,0,0,0.6); pointer-events: auto;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .val-screen { width: 40px; height: 25px; background: #2a1a05; margin-bottom: 8px; border: 1px solid #666; display:flex; justify-content:center; align-items:center; }
+        .val-status { width: 8px; height: 8px; border-radius: 50%; background: #333; transition: 0.2s; }
+
+        /* SUELO */
+        .floor {
+            height: 15%; background: url('https://www.transparenttextures.com/patterns/concrete-wall.png'), #1e293b;
+            box-shadow: inset 0 20px 50px rgba(0,0,0,0.8);
+            border-top: 5px solid #333; z-index: 20; position: relative;
+        }
+
+        /* UI HOLOGRAMA */
+        #holo-interface {
+            position: absolute; top: 50%; left: 50%; 
+            transform: translate(-50%, -50%) scale(0.9);
+            width: 400px; height: 300px; z-index: 100; pointer-events: none; opacity: 0;
+            background: rgba(0, 20, 25, 0.9); border: 1px solid var(--tram-turq);
+            backdrop-filter: blur(10px); padding: 30px; text-align: center;
+            transition: opacity 0.5s, transform 0.5s;
+            box-shadow: 0 0 100px rgba(0, 240, 212, 0.2);
+            clip-path: polygon(10% 0, 100% 0, 100% 90%, 90% 100%, 0 100%, 0 10%);
+        }
+        .holo-active { opacity: 1 !important; transform: translate(-50%, -50%) scale(1) !important; pointer-events: auto !important; }
+        .holo-btn {
+            background: transparent; border: 2px solid var(--tram-turq); color: var(--tram-turq);
+            padding: 10px 30px; font-family: 'Rajdhani'; font-weight: 700; font-size: 1.2rem;
+            cursor: pointer; transition: 0.3s; text-transform: uppercase;
+        }
+        .holo-btn:hover { background: var(--tram-turq); color: #000; box-shadow: 0 0 30px var(--tram-turq); }
+
+        /* NAV */
+        #control-tablet {
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
-            background: rgba(15, 23, 42, 0.95); padding: 10px 20px; border-radius: 40px;
-            border: 1px solid #475569; display: flex; gap: 10px; z-index: 500;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            background: #0f172a; padding: 10px 20px; border-radius: 40px; border: 2px solid #334155;
+            display: flex; gap: 10px; box-shadow: 0 20px 60px rgba(0,0,0,0.9); z-index: 200;
         }
         .nav-pill {
-            background: transparent; border: none; color: #94a3b8;
-            font-family: 'Rajdhani'; font-weight: 700; font-size: 1rem; cursor: pointer;
-            padding: 10px 20px; border-radius: 20px; transition: 0.3s;
+            background: transparent; border: none; color: #64748b; font-family: 'Rajdhani'; font-weight: 700;
+            padding: 10px 20px; cursor: pointer; transition: 0.3s; border-radius: 20px;
         }
-        .nav-pill:hover { color: #fff; background: rgba(255,255,255,0.1); }
-        .nav-pill.active { background: var(--c-accent); color: #000; box-shadow: 0 0 15px rgba(0, 203, 179, 0.4); }
-
-
-        /* --- GLITCH FX --- */
-        .nightmare-mode {
-            --c-accent: red;
-            --c-white: #110000;
-            --c-wall: #220000;
-            filter: contrast(1.5) sepia(1) hue-rotate(-50deg);
+        .nav-pill.active { background: #334155; color: #fff; box-shadow: 0 0 15px rgba(255,255,255,0.1); }
+        
+        #start-overlay {
+            position: fixed; top:0; left:0; width:100%; height:100%; background: #000; z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 1s;
         }
-        .nightmare-mode #scenery-layer { filter: invert(1); }
-
+        .start-btn {
+            background: transparent; color: var(--tram-turq); border: 2px solid var(--tram-turq);
+            padding: 20px 50px; font-size: 1.5rem; font-family: 'Rajdhani'; letter-spacing: 5px; cursor: pointer;
+        }
     </style>
 </head>
 <body>
 
-    <div id="lightning-flash"></div>
-    <div id="scenery-layer"></div>
-    <div class="rain-overlay"></div>
+    <div id="start-overlay">
+        <h1 style="font-family: 'Rajdhani'; color: #fff; margin-bottom: 0;">BAHÍA CERO</h1>
+        <button class="start-btn" onclick="initExperience()">INICIAR SISTEMA</button>
+    </div>
 
-    <div id="tram-cabin">
+    <div id="noise-overlay"></div>
+    <div id="vignette"></div>
+
+    <div id="world-stage">
+        <div id="scenery-layer"></div>
+        <div id="tunnel-lights"></div>
+    </div>
+
+    <div id="tram-container">
         
         <div class="ceiling">
-            <div class="pis-container">
-                <marquee id="pis-text" scrollamount="10">BAHÍA CERO  >>>  LÍNEA NOCTURNA  >>>  CONEXIÓN CON EL OTRO LADO</marquee>
+            <div class="light-strip"></div>
+            <div class="pis-screen">
+                <marquee class="led-text" scrollamount="12" id="led-msg">SISTEMA EN ESPERA...</marquee>
             </div>
+            <div class="light-strip"></div>
         </div>
 
-        <div class="mid-deck">
+        <div class="body-section">
             
-            <div class="wall">
-                <div class="side-seat">
-                    <div class="headrest"></div>
-                    <div class="passenger-shadow" id="p1"></div>
-                </div>
-            </div>
-
-            <div class="door-frame">
-                <div id="holo-projector">
-                    <div id="holo-content">
-                        </div>
+            <div class="doors-area">
+                <div id="holo-interface">
+                    <h2 id="holo-title" style="font-family: 'Rajdhani'; color: #00f0d4; margin:0;">DESTINO</h2>
+                    <p id="holo-desc" style="font-family: 'Share Tech Mono'; color: #aaa; margin: 20px 0;">Info...</p>
+                    <button class="holo-btn">ACCEDER</button>
                 </div>
 
-                <div id="doors">
-                    <div class="door-leaf leaf-left">
-                        <div class="door-glass"><div class="glass-rain"></div></div>
+                <div class="door-frame" id="door-mechanism">
+                    <div class="door-panel door-left">
+                        <div class="door-window"><div class="rain-glass"></div></div>
                     </div>
-                    <div class="door-leaf leaf-right">
-                        <div class="door-glass"><div class="glass-rain"></div></div>
-                        <div class="btn-housing">
-                            <div id="door-btn" class="locked" onclick="btnPress()">
-                                <div id="btn-ring"></div>
+                    <div class="door-panel door-right">
+                        <div class="door-window"><div class="rain-glass"></div></div>
+                        <div class="btn-mount">
+                            <div id="door-button" class="status-locked" onclick="interactionDoors()">
+                                <div class="ring-light"></div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="wall">
-                <div id="intercom" onclick="useIntercom()">
-                    <div class="intercom-grill"></div>
-                    <div class="intercom-btn"></div>
-                    <span style="font-size:0.6rem; color:#555;">S.O.S</span>
+            <div class="passenger-area">
+                <div class="side-window-frame">
+                    <div class="window-reflection"></div>
+                </div>
+                
+                <div class="pole-group">
+                    <div class="pole"></div>
+                    <div id="validator" onclick="interactionValidate()">
+                        <div class="val-screen"><span style="font-size:10px; color:#f00;">NFC</span></div>
+                        <div class="val-status"></div>
+                    </div>
                 </div>
 
-                <div class="side-seat">
-                    <div class="headrest"></div>
-                    <div class="passenger-shadow" id="p2"></div>
-                </div>
+                <div class="seats-container" id="seats-row">
+                    </div>
             </div>
 
         </div>
-
         <div class="floor"></div>
-
     </div>
 
-    <div id="tablet-ui">
-        <button class="nav-pill active" onclick="go(0)">INICIO</button>
-        <button class="nav-pill" onclick="go(1)">NOTICIAS</button>
-        <button class="nav-pill" onclick="go(2)">LORE</button>
-        <button class="nav-pill" onclick="go(3)">TIENDA</button>
+    <div id="control-tablet">
+        <button class="nav-pill active" onclick="travelTo(0)">INICIO</button>
+        <button class="nav-pill" onclick="travelTo(1)">NOTICIAS</button>
+        <button class="nav-pill" onclick="travelTo(2)">HISTORIA</button>
+        <button class="nav-pill" onclick="travelTo(3)">TIENDA</button>
     </div>
 
     <script>
-        // DATOS
-        const pages = [
-            { name: "INICIO", led: "LOBBY", title: "BAHÍA CERO", desc: "El tren ya no se detiene en estaciones conocidas. Bienvenido a la experiencia definitiva." },
-            { name: "NOTICIAS", led: "ACTUALIZACIONES", title: "PARCHE 1.0", desc: "La tormenta ahora afecta a la cordura del jugador. Sombras corregidas." },
-            { name: "LORE", led: "ARCHIVOS", title: "EL INCIDENTE", desc: "Nadie recuerda cuándo empezó a llover dentro del túnel." },
-            { name: "TIENDA", led: "TAQUILLA", title: "PRE-ORDER", desc: "Billete de ida. El de vuelta no está garantizado." }
+        /* --- CONFIGURACIÓN --- */
+        const destinations = [
+            { id: 0, name: "BAHÍA CERO", led: "TERMINAL PRINCIPAL", desc: "Origen de la realidad." },
+            { id: 1, name: "NOTICIAS", led: "DISTRITO INFORMATIVO", desc: "Actualizaciones del sector 7." },
+            { id: 2, name: "HISTORIA", led: "ARCHIVOS ANTIGUOS", desc: "Registros corruptos." },
+            { id: 3, name: "TIENDA", led: "ZONA COMERCIAL", desc: "Mejoras disponibles." }
         ];
 
-        // ESTADO
-        let st = { idx: 0, moving: false, doorsOpen: false, canOpen: false };
-        
-        // ELEMENTOS
-        const el = {
-            body: document.body,
-            doors: document.getElementById('doors'),
-            holo: document.getElementById('holo-content'),
-            led: document.getElementById('pis-text'),
-            btn: document.getElementById('door-btn'),
-            flash: document.getElementById('lightning-flash'),
-            cabin: document.getElementById('tram-cabin'),
-            intercom: document.getElementById('intercom'),
-            navs: document.querySelectorAll('.nav-pill')
-        };
+        let state = { currentIdx: 0, isMoving: false, doorsOpen: false, canOpen: false };
+        let audioCtx, oscDrone, gainDrone;
 
-        // 1. VIAJE
-        function go(i) {
-            if(st.moving || (i===st.idx && st.doorsOpen)) return;
+        // Renderizar Asientos
+        const seatsContainer = document.getElementById('seats-row');
+        // Definimos 3 asientos
+        const seatConfig = [0, 1, 2]; 
+        let occupiedSeats = [false, false, false]; // Estado de ocupación
 
-            // UI Update
-            el.navs.forEach(n => n.classList.remove('active'));
-            el.navs[i].classList.add('active');
+        seatConfig.forEach(i => {
+            const seat = document.createElement('div');
+            seat.className = 'seat';
+            seat.id = `seat-${i}`;
+            seat.innerHTML = `
+                <div class="seat-back"><div class="seat-headrest"></div><div class="seat-fabric"></div></div>
+                <div class="seat-cushion"><div class="seat-fabric"></div></div>
+            `;
+            seatsContainer.appendChild(seat);
+        });
+
+        /* --- AUDIO --- */
+        function initExperience() {
+            document.getElementById('start-overlay').style.opacity = '0';
+            setTimeout(() => document.getElementById('start-overlay').remove(), 1000);
             
-            st.idx = i;
-            st.moving = true;
-            st.canOpen = false;
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+            oscDrone = audioCtx.createOscillator();
+            gainDrone = audioCtx.createGain();
+            oscDrone.type = 'sawtooth';
+            oscDrone.frequency.value = 50;
+            gainDrone.gain.value = 0.05;
+            
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass'; filter.frequency.value = 120;
 
-            if(st.doorsOpen) {
-                closeDoors();
-                setTimeout(() => moveTrain(i), 1200);
-            } else {
-                moveTrain(i);
+            oscDrone.connect(filter); filter.connect(gainDrone);
+            gainDrone.connect(audioCtx.destination);
+            oscDrone.start();
+            arrive(0);
+        }
+
+        function playSound(type) {
+            if(!audioCtx) return;
+            const now = audioCtx.currentTime;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain); gain.connect(audioCtx.destination);
+
+            if (type === 'door') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.5);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now + 0.5);
+                osc.start(now); osc.stop(now + 0.6);
+            } else if (type === 'chime') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(600, now); osc.frequency.exponentialRampToValueAtTime(1000, now + 0.1);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 1);
+                osc.start(now); osc.stop(now + 1);
             }
         }
 
-        function moveTrain(i) {
-            // LED
-            el.led.innerText = `>>> DESTINO: ${pages[i].led} >>> PROHIBIDO ABRIR VENTANAS`;
-            el.led.style.color = "#f59e0b";
-
-            // FX Movimiento
-            el.body.classList.add('moving');
-            el.btn.className = "locked";
-
-            // Eventos Aleatorios (Luces, Rayos)
-            if(Math.random() > 0.5) triggerLightning();
-            if(Math.random() > 0.7) flickerLights();
-
-            // Simulación tiempo
-            setTimeout(() => arrive(i), 3000);
+        function setEngineSpeed(speed) {
+            if(!audioCtx) return;
+            const now = audioCtx.currentTime;
+            oscDrone.frequency.linearRampToValueAtTime(50 + (speed * 60), now + 2);
+            gainDrone.gain.linearRampToValueAtTime(0.05 + (speed * 0.15), now + 2);
         }
 
-        function arrive(i) {
-            st.moving = false;
-            el.body.classList.remove('moving');
+        /* --- LÓGICA DE VIAJE --- */
+        function travelTo(index) {
+            if(state.isMoving || (index === state.currentIdx && state.doorsOpen)) return;
+            document.querySelectorAll('.nav-pill').forEach((btn, i) => {
+                btn.classList.toggle('active', i === index); btn.disabled = true;
+            });
 
-            // LED Llegada
-            el.led.innerText = `*** PARADA: ${pages[i].led} *** PULSE BOTÓN`;
-            el.led.style.color = "#10b981";
-
-            // Botón Ready
-            st.canOpen = true;
-            el.btn.className = "ready";
-
-            // Cargar contenido Holograma
-            el.holo.innerHTML = `<h1>${pages[i].title}</h1><p>${pages[i].desc}</p>`;
+            if(state.doorsOpen) {
+                closeDoors();
+                setTimeout(() => startJourney(index), 1500);
+            } else {
+                startJourney(index);
+            }
         }
 
-        // 2. PUERTAS Y HOLOGRAMA
-        function btnPress() {
-            if(!st.canOpen) return;
-            
-            st.doorsOpen = true;
-            st.canOpen = false;
-            el.btn.className = "locked";
-            
-            el.doors.classList.add('doors-open');
-            
-            // Sonido visual
+        function startJourney(index) {
+            state.isMoving = true; state.canOpen = false; state.currentIdx = index;
+            document.body.classList.add('moving');
+            document.getElementById('door-button').className = 'status-locked';
+            document.getElementById('led-msg').innerText = `>>> VIAJANDO A: ${destinations[index].led}`;
+            document.getElementById('led-msg').style.color = "#ffaa00";
+            playSound('chime'); setEngineSpeed(1);
+
+            setTimeout(() => { setEngineSpeed(0); document.getElementById('led-msg').innerText = `>>> LLEGANDO...`; }, 3000);
+            setTimeout(() => { arrive(index); }, 5000);
+        }
+
+        function arrive(index) {
+            state.isMoving = false;
+            document.body.classList.remove('moving');
+            document.querySelectorAll('.nav-pill').forEach(b => b.disabled = false);
+            const data = destinations[index];
+            document.getElementById('led-msg').innerText = `*** ESTACIÓN: ${data.name} ***`;
+            document.getElementById('led-msg').style.color = "#00ff9d";
+            document.getElementById('holo-title').innerText = data.name;
+            document.getElementById('holo-desc').innerText = data.desc;
+            state.canOpen = true;
+            document.getElementById('door-button').className = 'status-ready';
+            playSound('chime');
+        }
+
+        /* --- SISTEMA DE PUERTAS Y PASAJEROS --- */
+        function interactionDoors() {
+            if(state.isMoving) return;
+            if(state.doorsOpen) closeDoors();
+            else if(state.canOpen) openDoors();
+        }
+
+        function openDoors() {
+            playSound('door');
+            state.doorsOpen = true;
+            document.getElementById('door-mechanism').classList.add('doors-open');
+            document.getElementById('door-button').className = 'status-locked';
             setTimeout(() => {
-                el.holo.classList.add('holo-visible');
-            }, 800);
+                document.getElementById('holo-interface').classList.add('holo-active');
+                managePassengers(); // INTELIGENCIA DE PASAJEROS
+            }, 600);
         }
 
         function closeDoors() {
-            st.doorsOpen = false;
-            el.doors.classList.remove('doors-open');
-            el.holo.classList.remove('holo-visible');
-        }
-
-        // 3. FX AMBIENTALES
-        function triggerLightning() {
-            el.flash.classList.add('flash-anim');
-            setTimeout(() => el.flash.classList.remove('flash-anim'), 300);
-        }
-
-        function flickerLights() {
-            el.cabin.classList.add('lights-flicker');
-            setTimeout(() => el.cabin.classList.remove('lights-flicker'), 100);
-            setTimeout(() => el.cabin.classList.add('lights-flicker'), 150);
-            setTimeout(() => el.cabin.classList.remove('lights-flicker'), 400);
-        }
-
-        // 4. INTERFONO (Interacción Extra)
-        function useIntercom() {
-            el.intercom.classList.add('intercom-active');
-            
-            // Mensajes creepy en el LED
-            const prevText = el.led.innerText;
-            const messages = ["¿HOLA?", "NO HAY NADIE AL VOLANTE", "AYUDA", "010101"];
-            el.led.innerText = ">>> MENSAJE ENTRANTE: " + messages[Math.floor(Math.random()*messages.length)];
-            el.led.style.color = "red";
-
-            // Glitch Mode 10% probabilidad
-            if(Math.random() > 0.9) {
-                document.body.classList.add('nightmare-mode');
-                setTimeout(() => document.body.classList.remove('nightmare-mode'), 200);
-            }
-
+            playSound('door');
+            state.doorsOpen = false;
+            document.getElementById('holo-interface').classList.remove('holo-active');
+            document.getElementById('door-mechanism').classList.remove('doors-open');
             setTimeout(() => {
-                el.intercom.classList.remove('intercom-active');
-                el.led.innerText = prevText; // Restaurar texto
-                el.led.style.color = "#f59e0b";
-            }, 2000);
+                if(!state.isMoving && state.canOpen) document.getElementById('door-button').className = 'status-ready';
+            }, 1000);
         }
 
-        // 5. SOMBRAS VIVAS
-        setInterval(() => {
-            const shadows = document.querySelectorAll('.passenger-shadow');
-            shadows.forEach(s => {
-                if(Math.random() > 0.5) s.classList.add('active');
-                else s.classList.remove('active');
-            });
-        }, 4000);
+        /* --- LÓGICA DE NPCs (PASAJEROS) --- */
+        function managePassengers() {
+            // Probabilidad del 80% de que ocurra algo
+            if(Math.random() > 0.2) {
+                // Decidir si entra alguien o sale alguien
+                const emptySeats = occupiedSeats.map((val, idx) => val === false ? idx : null).filter(val => val !== null);
+                const fullSeats = occupiedSeats.map((val, idx) => val === true ? idx : null).filter(val => val !== null);
 
-        // Init
-        setTimeout(() => arrive(0), 500);
-        document.getElementById('p1').classList.add('active');
+                // Si hay sitios libres, 60% prob de entrar. Si no, intenta salir.
+                if(emptySeats.length > 0 && Math.random() > 0.4) {
+                    spawnIncomingPassenger(emptySeats[Math.floor(Math.random() * emptySeats.length)]);
+                } else if (fullSeats.length > 0) {
+                    spawnOutgoingPassenger(fullSeats[Math.floor(Math.random() * fullSeats.length)]);
+                }
+            }
+        }
 
+        function spawnIncomingPassenger(seatIndex) {
+            const passenger = document.createElement('div');
+            passenger.className = 'npc-walker';
+            
+            // Posición inicial (en la puerta, a la izquierda de la pantalla)
+            // Calculamos coordenadas relativas a la passenger-area
+            passenger.style.left = '-150px'; 
+            passenger.style.bottom = '10px';
+            passenger.style.opacity = '1';
+
+            document.querySelector('.passenger-area').appendChild(passenger);
+
+            // Calcular destino (posición del asiento)
+            const targetSeat = document.getElementById(`seat-${seatIndex}`);
+            const seatRect = targetSeat.getBoundingClientRect();
+            const containerRect = document.querySelector('.passenger-area').getBoundingClientRect();
+            
+            // Offset visual
+            const finalLeft = (seatRect.left - containerRect.left) + 10; 
+
+            // 1. Caminar hacia el asiento
+            setTimeout(() => {
+                passenger.style.transform = `translateX(${finalLeft + 150}px)`;
+            }, 100);
+
+            // 2. Sentarse
+            setTimeout(() => {
+                passenger.classList.add('npc-seated');
+                occupiedSeats[seatIndex] = true;
+                passenger.id = `npc-in-seat-${seatIndex}`; // Guardar ID para poder sacarlo luego
+            }, 3000); // Tarda 3s en llegar
+        }
+
+        function spawnOutgoingPassenger(seatIndex) {
+            const passenger = document.getElementById(`npc-in-seat-${seatIndex}`);
+            if(!passenger) return;
+
+            // 1. Levantarse
+            passenger.classList.remove('npc-seated');
+            occupiedSeats[seatIndex] = false;
+            passenger.id = ''; // Limpiar ID
+
+            // 2. Caminar hacia la puerta (izquierda)
+            setTimeout(() => {
+                passenger.style.transform = `translateX(0px)`; // Volver a origen relativo (-150px visualmente fuera)
+                passenger.style.opacity = '0';
+            }, 500);
+
+            // 3. Limpiar DOM
+            setTimeout(() => {
+                passenger.remove();
+            }, 3500);
+        }
+
+        function interactionValidate() {
+            // ... (Código validador igual) ...
+             const led = document.querySelector('.val-status');
+            const screen = document.querySelector('.val-screen');
+            led.style.background = '#00ff9d'; led.style.boxShadow = '0 0 15px #00ff9d';
+            screen.innerHTML = '<span style="color:#00ff9d; font-size:14px;">OK</span>';
+            setTimeout(() => { led.style.background = '#333'; led.style.boxShadow = 'none'; screen.innerHTML = '<span style="font-size:10px; color:#f00;">NFC</span>'; }, 500);
+        }
     </script>
 </body>
 </html>
