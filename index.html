@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BAHÍA CERO | Ultimate Trambahía</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;600;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* --- 1. CORE VARIABLES (TRAMBAHÍA + HORROR) --- */
+        :root {
+            /* Estado Normal */
+            --c-white: #f1f5f9;
+            --c-wall: #e2e8f0;
+            --c-accent: #00cbb3; /* Turquesa Cádiz */
+            --c-dark: #1e293b;
+            --c-led: #f59e0b;
+            --c-glass: rgba(100, 150, 170, 0.15);
+            
+            /* Estado Pesadilla */
+            --h-red: #ff0033;
+            --h-dark: #050000;
+        }
+
+        body {
+            margin: 0; background: #000; height: 100vh; overflow: hidden;
+            font-family: 'Inter', sans-serif; user-select: none;
+        }
+
+        /* --- 2. EL MUNDO EXTERIOR (CLIMA) --- */
+        #world-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;
+            background: url('https://images.unsplash.com/photo-1518558997970-4dadc13cbf24?q=80&w=2574') center/cover;
+            filter: blur(4px) brightness(0.3);
+            transition: filter 2s;
+        }
+        
+        /* Lluvia en el cristal */
+        .rain-overlay {
+            position: absolute; width: 100%; height: 100%; z-index: 1; pointer-events: none;
+            background-image: url('https://upload.wikimedia.org/wikipedia/commons/6/66/Rain_drops_on_window_02.jpg'); /* Textura de gotas simulada con opacidad */
+            background-size: cover; opacity: 0.3; mix-blend-mode: overlay;
+        }
+
+        /* Relámpagos */
+        #lightning-flash {
+            position: absolute; top:0; left:0; width:100%; height:100%; z-index: 2;
+            background: #fff; opacity: 0; pointer-events: none;
+        }
+        .flash-anim { animation: flash 0.2s; }
+        @keyframes flash { 0% { opacity: 0; } 10% { opacity: 0.8; } 100% { opacity: 0; } }
+
+        /* Efecto Velocidad */
+        .moving #world-layer {
+            filter: blur(20px) brightness(0.5);
+            animation: shake 0.1s infinite;
+        }
+        @keyframes shake { 0% { transform: translateY(0); } 100% { transform: translateY(2px); } }
+
+
+        /* --- 3. VAGÓN (INTERIOR 3D) --- */
+        #tram-cabin {
+            position: absolute; top:0; left:0; width: 100%; height: 100%;
+            z-index: 10; display: flex; flex-direction: column;
+            /* Luces interiores parpadeantes */
+            transition: filter 0.1s;
+        }
+        .lights-flicker { filter: brightness(0.2) contrast(1.2); }
+
+        /* TECHO Y PIS */
+        .ceiling {
+            height: 15%; background: #f8fafc; border-bottom: 5px solid #334155;
+            display: flex; align-items: center; justify-content: center; position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 20;
+        }
+        
+        /* PIS LED ULTRA REALISTA */
+        .pis-container {
+            width: 50%; height: 50%; background: #000; border: 4px solid #222;
+            box-shadow: inset 0 0 20px #000; overflow: hidden; display: flex; align-items: center;
+        }
+        .pis-text {
+            font-family: 'Share Tech Mono', monospace; color: var(--c-led); font-size: 1.5rem;
+            white-space: nowrap; text-shadow: 0 0 5px var(--c-led);
+        }
+
+        /* ZONA MEDIA (PAREDES Y PUERTAS) */
+        .mid-deck { flex-grow: 1; display: flex; position: relative; }
+
+        /* Paneles Laterales */
+        .wall {
+            width: 25%; height: 100%; background: linear-gradient(to bottom, #fff, #cbd5e1);
+            border-bottom: 20px solid #334155; position: relative;
+            display: flex; flex-direction: column; justify-content: flex-end;
+        }
+        
+        /* Asientos de lado */
+        .side-seat {
+            width: 90%; height: 50%; margin: 0 auto;
+            background: #475569; border-radius: 10px 10px 0 0;
+            position: relative; box-shadow: 0 -5px 20px rgba(0,0,0,0.3);
+        }
+        .headrest {
+            position: absolute; top: -30px; left: 10%; width: 80%; height: 40px;
+            background: var(--c-accent); border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        /* SOMBRAS PASAJEROS */
+        .shadow-passenger {
+            position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+            width: 80%; height: 90%;
+            background: radial-gradient(ellipse at center, rgba(10,10,20,0.9), transparent 70%);
+            filter: blur(15px); opacity: 0; mix-blend-mode: multiply;
+            transition: opacity 1s;
+        }
+        .shadow-passenger.active { opacity: 0.8; animation: breathe 4s infinite alternate; }
+        @keyframes breathe { to { transform: translateX(-50%) scale(1.05); } }
+
+        /* PUERTAS CENTRALES */
+        .door-frame {
+            width: 50%; height: 100%; position: relative; overflow: hidden;
+            border-top: 30px solid #334155; /* Caja mecanismo */
+        }
+        .door-leaf {
+            width: 50%; height: 100%; position: absolute; top: 0;
+            background: linear-gradient(90deg, #f1f5f9, #e2e8f0);
+            border-bottom: 15px solid #facc15; /* Goma amarilla */
+            display: flex; align-items: center; justify-content: center;
+            transition: transform 1.2s cubic-bezier(0.6, 0, 0.2, 1);
+            box-shadow: inset 0 0 30px rgba(0,0,0,0.1);
+        }
+        .leaf-left { left: 0; border-right: 5px solid #999; z-index: 2; transform: translateX(0); }
+        .leaf-right { right: 0; border-left: 5px solid #999; z-index: 1; transform: translateX(0); }
+        
+        /* Estado Abierto */
+        .doors-open .leaf-left { transform: translateX(-95%); }
+        .doors-open .leaf-right { transform: translateX(95%); }
+
+        /* Ventanas Puerta (Con gotas de lluvia) */
+        .door-glass {
+            width: 65%; height: 70%; background: var(--c-glass);
+            border: 10px solid #334155; border-radius: 12px;
+            backdrop-filter: blur(6px); position: relative; overflow: hidden;
+        }
+        .glass-rain {
+            position: absolute; width: 100%; height: 100%;
+            background: url('https://www.transparenttextures.com/patterns/stardust.png'); /* Simulación ruido */
+            opacity: 0.5;
+        }
+
+        /* BOTÓN (INTEGRADO) */
+        .btn-housing {
+            position: absolute; top: 50%; left: 15px; transform: translateY(-50%);
+            z-index: 50;
+        }
+        #door-btn {
+            width: 70px; height: 70px; background: #1e293b; border-radius: 50%;
+            border: 3px solid #475569; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4); transition: transform 0.1s;
+        }
+        #door-btn:active { transform: scale(0.95); }
+        #btn-ring {
+            width: 50px; height: 50px; border-radius: 50%; border: 3px solid #333;
+            background: #222; transition: all 0.3s; position: relative;
+        }
+        #btn-ring::after { content: '< >'; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #666; font-weight: bold;}
+        
+        /* Estados botón */
+        .ready #btn-ring { background: #064e3b; border-color: #10b981; box-shadow: 0 0 20px #10b981; animation: pulse 1s infinite; }
+        .ready #btn-ring::after { color: #fff; }
+        @keyframes pulse { 50% { box-shadow: 0 0 40px #10b981; } }
+
+
+        /* --- 4. INTERFONO DE EMERGENCIA (NUEVO) --- */
+        #intercom {
+            position: absolute; top: 30%; right: 10px; width: 60px; height: 100px;
+            background: #cbd5e1; border: 2px solid #94a3b8; border-radius: 5px;
+            display: flex; flex-direction: column; align-items: center; justify-content: space-around;
+            padding: 5px; cursor: pointer; z-index: 50;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        .intercom-grill { width: 40px; height: 40px; background: radial-gradient(circle, #333 2px, transparent 2px); background-size: 5px 5px; border: 1px solid #999; border-radius: 50%; }
+        .intercom-btn { width: 30px; height: 30px; background: #ef4444; border-radius: 50%; border: 2px solid #991b1b; }
+        .intercom-active .intercom-btn { animation: blinkRed 0.5s infinite; }
+        @keyframes blinkRed { 50% { background: #fee2e2; box-shadow: 0 0 10px red; } }
+
+
+        /* --- 5. SUELO --- */
+        .floor {
+            height: 20%; background: var(--floor-dark);
+            background-image: radial-gradient(#333 2px, transparent 2px);
+            background-size: 15px 15px;
+            box-shadow: inset 0 20px 60px rgba(0,0,0,0.6);
+            display: flex; justify-content: center;
+        }
+
+
+        /* --- 6. CONTENIDO HOLOGRÁFICO --- */
+        #holo-projector {
+            position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%);
+            width: 80%; height: 10px; background: transparent;
+            display: flex; justify-content: center; z-index: 5;
+        }
+        
+        #holo-content {
+            position: absolute; bottom: 20px; width: 600px; height: 400px;
+            background: linear-gradient(to top, rgba(0, 203, 179, 0.1), transparent);
+            border: 1px solid var(--c-accent); border-radius: 10px;
+            backdrop-filter: blur(10px);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
+            padding: 30px; color: #fff;
+            transform-origin: bottom; transform: scaleY(0); opacity: 0;
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.5s;
+            box-shadow: 0 0 50px rgba(0, 203, 179, 0.2);
+        }
+        .holo-visible { transform: scaleY(1) !important; opacity: 1 !important; }
+        
+        /* Scanlines del holograma */
+        #holo-content::before {
+            content:''; position: absolute; top:0; left:0; width:100%; height:100%;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 203, 179, 0.1) 3px);
+            pointer-events: none;
+        }
+
+
+        /* --- 7. TABLET UI --- */
+        #tablet-ui {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.95); padding: 10px 20px; border-radius: 40px;
+            border: 1px solid #475569; display: flex; gap: 10px; z-index: 500;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+        }
+        .nav-pill {
+            background: transparent; border: none; color: #94a3b8;
+            font-family: 'Rajdhani'; font-weight: 700; font-size: 1rem; cursor: pointer;
+            padding: 10px 20px; border-radius: 20px; transition: 0.3s;
+        }
+        .nav-pill:hover { color: #fff; background: rgba(255,255,255,0.1); }
+        .nav-pill.active { background: var(--c-accent); color: #000; box-shadow: 0 0 15px rgba(0, 203, 179, 0.4); }
+
+
+        /* --- GLITCH FX --- */
+        .nightmare-mode {
+            --c-accent: red;
+            --c-white: #110000;
+            --c-wall: #220000;
+            filter: contrast(1.5) sepia(1) hue-rotate(-50deg);
+        }
+        .nightmare-mode #scenery-layer { filter: invert(1); }
+
+    </style>
+</head>
+<body>
+
+    <div id="lightning-flash"></div>
+    <div id="scenery-layer"></div>
+    <div class="rain-overlay"></div>
+
+    <div id="tram-cabin">
+        
+        <div class="ceiling">
+            <div class="pis-container">
+                <marquee id="pis-text" scrollamount="10">BAHÍA CERO  >>>  LÍNEA NOCTURNA  >>>  CONEXIÓN CON EL OTRO LADO</marquee>
+            </div>
+        </div>
+
+        <div class="mid-deck">
+            
+            <div class="wall">
+                <div class="side-seat">
+                    <div class="headrest"></div>
+                    <div class="passenger-shadow" id="p1"></div>
+                </div>
+            </div>
+
+            <div class="door-frame">
+                <div id="holo-projector">
+                    <div id="holo-content">
+                        </div>
+                </div>
+
+                <div id="doors">
+                    <div class="door-leaf leaf-left">
+                        <div class="door-glass"><div class="glass-rain"></div></div>
+                    </div>
+                    <div class="door-leaf leaf-right">
+                        <div class="door-glass"><div class="glass-rain"></div></div>
+                        <div class="btn-housing">
+                            <div id="door-btn" class="locked" onclick="btnPress()">
+                                <div id="btn-ring"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="wall">
+                <div id="intercom" onclick="useIntercom()">
+                    <div class="intercom-grill"></div>
+                    <div class="intercom-btn"></div>
+                    <span style="font-size:0.6rem; color:#555;">S.O.S</span>
+                </div>
+
+                <div class="side-seat">
+                    <div class="headrest"></div>
+                    <div class="passenger-shadow" id="p2"></div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="floor"></div>
+
+    </div>
+
+    <div id="tablet-ui">
+        <button class="nav-pill active" onclick="go(0)">INICIO</button>
+        <button class="nav-pill" onclick="go(1)">NOTICIAS</button>
+        <button class="nav-pill" onclick="go(2)">LORE</button>
+        <button class="nav-pill" onclick="go(3)">TIENDA</button>
+    </div>
+
+    <script>
+        // DATOS
+        const pages = [
+            { name: "INICIO", led: "LOBBY", title: "BAHÍA CERO", desc: "El tren ya no se detiene en estaciones conocidas. Bienvenido a la experiencia definitiva." },
+            { name: "NOTICIAS", led: "ACTUALIZACIONES", title: "PARCHE 1.0", desc: "La tormenta ahora afecta a la cordura del jugador. Sombras corregidas." },
+            { name: "LORE", led: "ARCHIVOS", title: "EL INCIDENTE", desc: "Nadie recuerda cuándo empezó a llover dentro del túnel." },
+            { name: "TIENDA", led: "TAQUILLA", title: "PRE-ORDER", desc: "Billete de ida. El de vuelta no está garantizado." }
+        ];
+
+        // ESTADO
+        let st = { idx: 0, moving: false, doorsOpen: false, canOpen: false };
+        
+        // ELEMENTOS
+        const el = {
+            body: document.body,
+            doors: document.getElementById('doors'),
+            holo: document.getElementById('holo-content'),
+            led: document.getElementById('pis-text'),
+            btn: document.getElementById('door-btn'),
+            flash: document.getElementById('lightning-flash'),
+            cabin: document.getElementById('tram-cabin'),
+            intercom: document.getElementById('intercom'),
+            navs: document.querySelectorAll('.nav-pill')
+        };
+
+        // 1. VIAJE
+        function go(i) {
+            if(st.moving || (i===st.idx && st.doorsOpen)) return;
+
+            // UI Update
+            el.navs.forEach(n => n.classList.remove('active'));
+            el.navs[i].classList.add('active');
+            
+            st.idx = i;
+            st.moving = true;
+            st.canOpen = false;
+
+            if(st.doorsOpen) {
+                closeDoors();
+                setTimeout(() => moveTrain(i), 1200);
+            } else {
+                moveTrain(i);
+            }
+        }
+
+        function moveTrain(i) {
+            // LED
+            el.led.innerText = `>>> DESTINO: ${pages[i].led} >>> PROHIBIDO ABRIR VENTANAS`;
+            el.led.style.color = "#f59e0b";
+
+            // FX Movimiento
+            el.body.classList.add('moving');
+            el.btn.className = "locked";
+
+            // Eventos Aleatorios (Luces, Rayos)
+            if(Math.random() > 0.5) triggerLightning();
+            if(Math.random() > 0.7) flickerLights();
+
+            // Simulación tiempo
+            setTimeout(() => arrive(i), 3000);
+        }
+
+        function arrive(i) {
+            st.moving = false;
+            el.body.classList.remove('moving');
+
+            // LED Llegada
+            el.led.innerText = `*** PARADA: ${pages[i].led} *** PULSE BOTÓN`;
+            el.led.style.color = "#10b981";
+
+            // Botón Ready
+            st.canOpen = true;
+            el.btn.className = "ready";
+
+            // Cargar contenido Holograma
+            el.holo.innerHTML = `<h1>${pages[i].title}</h1><p>${pages[i].desc}</p>`;
+        }
+
+        // 2. PUERTAS Y HOLOGRAMA
+        function btnPress() {
+            if(!st.canOpen) return;
+            
+            st.doorsOpen = true;
+            st.canOpen = false;
+            el.btn.className = "locked";
+            
+            el.doors.classList.add('doors-open');
+            
+            // Sonido visual
+            setTimeout(() => {
+                el.holo.classList.add('holo-visible');
+            }, 800);
+        }
+
+        function closeDoors() {
+            st.doorsOpen = false;
+            el.doors.classList.remove('doors-open');
+            el.holo.classList.remove('holo-visible');
+        }
+
+        // 3. FX AMBIENTALES
+        function triggerLightning() {
+            el.flash.classList.add('flash-anim');
+            setTimeout(() => el.flash.classList.remove('flash-anim'), 300);
+        }
+
+        function flickerLights() {
+            el.cabin.classList.add('lights-flicker');
+            setTimeout(() => el.cabin.classList.remove('lights-flicker'), 100);
+            setTimeout(() => el.cabin.classList.add('lights-flicker'), 150);
+            setTimeout(() => el.cabin.classList.remove('lights-flicker'), 400);
+        }
+
+        // 4. INTERFONO (Interacción Extra)
+        function useIntercom() {
+            el.intercom.classList.add('intercom-active');
+            
+            // Mensajes creepy en el LED
+            const prevText = el.led.innerText;
+            const messages = ["¿HOLA?", "NO HAY NADIE AL VOLANTE", "AYUDA", "010101"];
+            el.led.innerText = ">>> MENSAJE ENTRANTE: " + messages[Math.floor(Math.random()*messages.length)];
+            el.led.style.color = "red";
+
+            // Glitch Mode 10% probabilidad
+            if(Math.random() > 0.9) {
+                document.body.classList.add('nightmare-mode');
+                setTimeout(() => document.body.classList.remove('nightmare-mode'), 200);
+            }
+
+            setTimeout(() => {
+                el.intercom.classList.remove('intercom-active');
+                el.led.innerText = prevText; // Restaurar texto
+                el.led.style.color = "#f59e0b";
+            }, 2000);
+        }
+
+        // 5. SOMBRAS VIVAS
+        setInterval(() => {
+            const shadows = document.querySelectorAll('.passenger-shadow');
+            shadows.forEach(s => {
+                if(Math.random() > 0.5) s.classList.add('active');
+                else s.classList.remove('active');
+            });
+        }, 4000);
+
+        // Init
+        setTimeout(() => arrive(0), 500);
+        document.getElementById('p1').classList.add('active');
+
+    </script>
+</body>
+</html>
